@@ -94,6 +94,7 @@ if __name__ == "__main__":
             with open(slurm_script_file, 'w') as _sf:
                 for _fov, _savefile in fov_2_savefile.items():
                     _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --zstd -C {source_folder} -T {_savefile} -cvf {final_target_folder+os.sep}Fov_{_fov}.tar.zst"\n')
+                    _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based archiving jobs.\n")
     else:
         bash_script_file = os.path.join(final_target_folder, 'fov_archiving.bash')
