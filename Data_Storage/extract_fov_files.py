@@ -80,7 +80,7 @@ if __name__ == "__main__":
         _fov_filelist_savefile = os.path.join(final_target_folder, f"filelist_{_fov}.txt")
         if not os.path.exists(_fov_filelist_savefile) or overwrite:
             with open(_fov_filelist_savefile, 'w') as _f:
-                _f.write('\00'.join(_files))
+                _f.write('\n'.join(_files))
             print(f", write to file: {_fov_filelist_savefile}")
         else:
             print("")
