@@ -1,4 +1,4 @@
-#!/home/puzheng/anaconda3/bin/python
+#!~/anaconda3/bin/python
 
 import os, sys, getopt, re
 
@@ -13,10 +13,10 @@ def parse_arguments(argv):
         opts, args = getopt.getopt(argv, "hi:r:o:ws")
     except:
         print("Error in parsing inputs.")
-        print("Usage: extract_fov_files.py -i <source_folder> -r <regular_expression_string> -o <target_folder>")
+        print("Usage: extract_fov_files.py -i <source_folder> -r <regular_expression_string> -o <target_folder> [-h|-w|-s]")
     for opt, arg in opts:
         if opt == '-h':
-            print("Usage: extract_fov_files.py -i <source_folder> -r <regular_expression_string> -o <target_folder>")
+            print("Usage: extract_fov_files.py -i <source_folder> -r <regular_expression_string> -o <target_folder>  [-h|-w|-s]")
             print(" -w: overwrite existing files")
             print(" -s: generate slurm instead of bash")
         elif opt in ['-i']:
@@ -75,38 +75,49 @@ if __name__ == "__main__":
             else:
                 fov_2_files['others'].append(_rel_file)
     # save these temp list
-    fov_2_savefile = {}
+    fov_2_filelist_savefile = {}
+    fov_2_archive_savefile = {}
     for _fov, _files in fov_2_files.items():
-        print(f"FOV: {_fov}, {len(_files)} files", end='')
+        print(f"FOV: {_fov}, {len(_files)} files", end=',')
         _fov_filelist_savefile = os.path.join(final_target_folder, f"filelist_{_fov}.txt")
+        _fov_archive_savefile = os.path.join(final_target_folder, f"Fov_{_fov}.tar.zst")
+        # if filelsit doesn't exist, create.
         if not os.path.exists(_fov_filelist_savefile) or overwrite:
             with open(_fov_filelist_savefile, 'w') as _f:
                 _f.write('\n'.join(_files))
-            print(f", write to file: {_fov_filelist_savefile}")
+            print(f"write filelist to: {_fov_filelist_savefile}", end=',')
+        # if archive doesn't exist, create and add to processing list.
+        if not os.path.exists(_fov_archive_savefile) or overwrite:
+            print(f"archive to: {_fov_archive_savefile}")
+            # append
+            fov_2_filelist_savefile[_fov] = _fov_filelist_savefile
+            fov_2_archive_savefile[_fov] = _fov_archive_savefile
         else:
-            print("")
-        fov_2_savefile[_fov] = _fov_filelist_savefile
-    
+            print("archive exists, skip.")
+
     # print commands
     if generate_slurm:
         # archiving
         archiving_slurm_script_file = os.path.join(final_target_folder, 'fov_archiving.slurm')
-        print(f"slurm script saved into file: {archiving_slurm_script_file}")
         if not os.path.exists(archiving_slurm_script_file) or overwrite:
+            print(f"slurm script saved into file: {archiving_slurm_script_file}")
             with open(archiving_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash")
-                for _fov, _savefile in fov_2_savefile.items():
-                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program zstd -C {source_folder} -T {_savefile} -cvf {final_target_folder+os.sep}Fov_{_fov}.tar.zst"\n')
+                for _fov in fov_2_archive_savefile:
+                    _filelist_savefile = fov_2_filelist_savefile[_fov]
+                    _archive_savefile = fov_2_archive_savefile[_fov]
+                    # write line
+                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program zstd -C {source_folder} -T {_filelist_savefile} -cvf {_archive_savefile}"\n')
                     _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based archiving jobs.\n")
         # scanning archives
         scanning_slurm_script_file = os.path.join(final_target_folder, 'fov_scanning.slurm')
-        print(f"slurm script saved into file: {scanning_slurm_script_file}")
         if not os.path.exists(scanning_slurm_script_file) or overwrite:
+            print(f"slurm script saved into file: {scanning_slurm_script_file}")
             with open(scanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash")
-                for _fov, _savefile in fov_2_savefile.items():
-                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program=unzstd -tf {final_target_folder+os.sep}Fov_{_fov}.tar.zst > {final_target_folder+os.sep}Fov_{_fov}.log"\n')
+                for _fov, _archive_savefile in fov_2_archive_savefile.items():
+                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program=unzstd -tf {_archive_savefile} > {final_target_folder+os.sep}Fov_{_fov}.log"\n')
                     _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based scanning jobs.\n")
         # checking results
@@ -126,20 +137,24 @@ if __name__ == "__main__":
     else:
         # archiving
         archiving_bash_script_file = os.path.join(final_target_folder, 'fov_archiving.bash')
-        print(f"bash script saved into file: {archiving_bash_script_file}")
         if not os.path.exists(archiving_bash_script_file) or overwrite:
+            print(f"bash script saved into file: {archiving_bash_script_file}")
             with open(archiving_bash_script_file, 'w', encoding='utf-8') as _sf:
-                for _fov, _savefile in fov_2_savefile.items():
-                    _sf.write(f"time tar --zstd -C {source_folder} -T {_savefile} -cvf {final_target_folder+os.sep}Fov_{_fov}.tar.zst\n")
-
+                for _fov in fov_2_archive_savefile:
+                    _filelist_savefile = fov_2_filelist_savefile[_fov]
+                    _archive_savefile = fov_2_archive_savefile[_fov]
+                    # write line
+                    #_sf.write(f"time tar --zstd -C {source_folder} -T {_savefile} -cvf {final_target_folder+os.sep}Fov_{_fov}.tar.zst\n")
+                    _sf.write(f"time tar --use-compress-program zstd -C {source_folder} -T {_filelist_savefile} -cvf {_archive_savefile}\n")
         # scanning archives
         scanning_bash_script_file = os.path.join(final_target_folder, 'fov_scanning.bash')
-        print(f"bash script saved into file: {scanning_bash_script_file}")
         if not os.path.exists(scanning_bash_script_file) or overwrite:
+            print(f"bash script saved into file: {scanning_bash_script_file}")
             with open(scanning_bash_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash")
-                for _fov, _savefile in fov_2_savefile.items():
-                    _sf.write(f"time tar --use-compress-program=unzstd -tf {final_target_folder+os.sep}Fov_{_fov}.tar.zst > {final_target_folder+os.sep}Fov_{_fov}.log\n")
+                for _fov, _archive_savefile in fov_2_archive_savefile.items():
+                    _sf.write(f"echo scanning archive: {_archive_savefile}\n")
+                    _sf.write(f"time tar --use-compress-program=unzstd -tf {_archive_savefile} > {final_target_folder+os.sep}Fov_{_fov}.log\n")
         # checking results
         # please run the next python script
         # print instructions:
