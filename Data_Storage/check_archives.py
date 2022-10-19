@@ -35,7 +35,7 @@ if __name__ == "__main__":
         target_folder = target_folder[:-1]
     # searching for file-lists and archive-scanning-logs
     _fovs, _filelist_files, _scanning_log_files = [], [], []
-    print(f"searching for filelist and scanning-log, found fov: ")
+    print("searching for filelist and scanning-log, found fov: ")
     for _file in os.listdir(target_folder):
         _full_file = os.path.join(target_folder, _file)
         if os.path.isfile(_full_file):
@@ -51,6 +51,7 @@ if __name__ == "__main__":
                     _fovs.append(_fov)
                     _filelist_files.append(_full_file)
                     _scanning_log_files.append(_log_file)
+    print("")
     # running checks
     _fov_checks = {}
     for _fov, _filelist_file, _log_file in zip(_fovs, _filelist_files, _scanning_log_files):
