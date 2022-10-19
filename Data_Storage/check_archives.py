@@ -40,7 +40,7 @@ if __name__ == "__main__":
         _full_file = os.path.join(target_folder, _file)
         if os.path.isfile(_full_file):
             # check if its a filelist item
-            re_string = r'filelist_(?P<fov>[0-9]+)\.txt$)'
+            re_string = r'filelist_(?P<fov>[0-9]+)\.txt$'
             _match_result = re.match(re_string, _file)
             if _match_result:
                 _fov = _match_result.groupdict()['fov']
