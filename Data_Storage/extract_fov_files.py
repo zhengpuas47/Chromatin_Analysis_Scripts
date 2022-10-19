@@ -29,13 +29,14 @@ def parse_arguments(argv):
             overwrite = True
         elif opt in ['-s']:
             generate_slurm = True
-
+    print(f"* Archiving data by field-of-view")
+    print(f"-- by Pu Zheng, 2022.10.19")
     print(f"* Searching for files belong to different field-of-views. ")
-    print(f"* source_folder: {source_folder}")
-    print(f"* target_folder: {target_folder}")
-    print(f"* searching string: {re_string}")
-    print(f"* overwrite target files: {overwrite}")
-    print(f"* generate slurm script: {generate_slurm}")
+    print(f"-- source_folder: {source_folder}")
+    print(f"-- target_folder: {target_folder}")
+    print(f"-- searching string: {re_string}")
+    print(f"-- overwrite target files: {overwrite}")
+    print(f"-- generate slurm script: {generate_slurm}")
     return source_folder, target_folder, re_string, overwrite, generate_slurm
 
 if __name__ == "__main__":
@@ -110,7 +111,20 @@ if __name__ == "__main__":
                 _sf.write("echo Finish submitting fov based scanning jobs.\n")
         # checking results
         # please run the next python script
+        # print instructions:
+        print(f'Please run the following code:')
+        print(f"1. archving data:")
+        print(f'sbatch {archiving_slurm_script_file}')
+        print(f"2. scanning data archives:")
+        print(f'sbatch {scanning_slurm_script_file}')
+        print(f"3. scanning data archives:")
+        print(f'sbatch --wrap="python check_archives.py -o {final_target_folder} -w"')
+        print(f"3.1 in the interactive job, run the following instead:")
+        print(f"python check_archives.py -o {final_target_folder} -w")
+        print(f"-- check the final output! ")
+
     else:
+        # archiving
         archiving_bash_script_file = os.path.join(final_target_folder, 'fov_archiving.bash')
         print(f"bash script saved into file: {archiving_bash_script_file}")
         if not os.path.exists(archiving_bash_script_file) or overwrite:
@@ -126,3 +140,14 @@ if __name__ == "__main__":
                 _sf.write("#!/bin/bash")
                 for _fov, _savefile in fov_2_savefile.items():
                     _sf.write(f"time tar --use-compress-program=unzstd -tf {final_target_folder+os.sep}Fov_{_fov}.tar.zst > {final_target_folder+os.sep}Fov_{_fov}.log\n")
+        # checking results
+        # please run the next python script
+        # print instructions:
+        print(f'Please run the following code:')
+        print(f"1. archving data:")
+        print(f'bash {archiving_bash_script_file}')
+        print(f"2. scanning data archives:")
+        print(f'bash {scanning_bash_script_file}')
+        print(f"3. scanning data archives:")
+        print(f"python check_archives.py -o {final_target_folder} -w")
+        print(f"-- check the final output! ")
