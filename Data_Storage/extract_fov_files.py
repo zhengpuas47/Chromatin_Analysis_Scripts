@@ -88,18 +88,41 @@ if __name__ == "__main__":
     
     # print commands
     if generate_slurm:
-        slurm_script_file = os.path.join(final_target_folder, 'fov_archiving.slurm')
-        print(f"slurm script saved into file: {slurm_script_file}")
-        if not os.path.exists(slurm_script_file) or overwrite:
-            with open(slurm_script_file, 'w') as _sf:
+        # archiving
+        archiving_slurm_script_file = os.path.join(final_target_folder, 'fov_archiving.slurm')
+        print(f"slurm script saved into file: {archiving_slurm_script_file}")
+        if not os.path.exists(archiving_slurm_script_file) or overwrite:
+            with open(archiving_slurm_script_file, 'w', encoding='utf-8') as _sf:
+                _sf.write("#!/bin/bash")
                 for _fov, _savefile in fov_2_savefile.items():
                     _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program zstd -C {source_folder} -T {_savefile} -cvf {final_target_folder+os.sep}Fov_{_fov}.tar.zst"\n')
                     _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based archiving jobs.\n")
+        # scanning archives
+        scanning_slurm_script_file = os.path.join(final_target_folder, 'fov_scanning.slurm')
+        print(f"slurm script saved into file: {scanning_slurm_script_file}")
+        if not os.path.exists(scanning_slurm_script_file) or overwrite:
+            with open(scanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
+                _sf.write("#!/bin/bash")
+                for _fov, _savefile in fov_2_savefile.items():
+                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program=unzstd -tf {final_target_folder+os.sep}Fov_{_fov}.tar.zst > {final_target_folder+os.sep}Fov_{_fov}.log"\n')
+                    _sf.write('sleep 1\n')
+                _sf.write("echo Finish submitting fov based scanning jobs.\n")
+        # checking results
+        # please run the next python script
     else:
-        bash_script_file = os.path.join(final_target_folder, 'fov_archiving.bash')
-        print(f"bash script saved into file: {bash_script_file}")
-        if not os.path.exists(bash_script_file) or overwrite:
-            with open(bash_script_file, 'w') as _sf:
+        archiving_bash_script_file = os.path.join(final_target_folder, 'fov_archiving.bash')
+        print(f"bash script saved into file: {archiving_bash_script_file}")
+        if not os.path.exists(archiving_bash_script_file) or overwrite:
+            with open(archiving_bash_script_file, 'w', encoding='utf-8') as _sf:
                 for _fov, _savefile in fov_2_savefile.items():
                     _sf.write(f"time tar --zstd -C {source_folder} -T {_savefile} -cvf {final_target_folder+os.sep}Fov_{_fov}.tar.zst\n")
+
+        # scanning archives
+        scanning_bash_script_file = os.path.join(final_target_folder, 'fov_scanning.bash')
+        print(f"bash script saved into file: {scanning_bash_script_file}")
+        if not os.path.exists(scanning_bash_script_file) or overwrite:
+            with open(scanning_bash_script_file, 'w', encoding='utf-8') as _sf:
+                _sf.write("#!/bin/bash")
+                for _fov, _savefile in fov_2_savefile.items():
+                    _sf.write(f"time tar --use-compress-program=unzstd -tf {final_target_folder+os.sep}Fov_{_fov}.tar.zst > {final_target_folder+os.sep}Fov_{_fov}.log\n")
