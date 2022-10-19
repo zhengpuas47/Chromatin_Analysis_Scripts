@@ -19,6 +19,7 @@ def parse_arguments(argv):
             print("Usage: extract_fov_files.py -i <source_folder> -r <regular_expression_string> -o <target_folder>  [-h|-w|-s]")
             print(" -w: overwrite existing files")
             print(" -s: generate slurm instead of bash")
+            exit()
         elif opt in ['-i']:
             source_folder = arg
         elif opt in ['-r']:
@@ -111,7 +112,7 @@ if __name__ == "__main__":
         # archiving
         archiving_slurm_script_file = os.path.join(final_target_folder, 'fov_archiving.slurm')
         if not os.path.exists(archiving_slurm_script_file) or overwrite:
-            print(f"slurm script saved into file: {archiving_slurm_script_file}")
+            print(f"Archiving slurm script saved into file: {archiving_slurm_script_file}")
             with open(archiving_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash")
                 for _fov in fov_2_archive_savefile:
@@ -124,7 +125,7 @@ if __name__ == "__main__":
         # scanning archives
         scanning_slurm_script_file = os.path.join(final_target_folder, 'fov_scanning.slurm')
         if not os.path.exists(scanning_slurm_script_file) or overwrite:
-            print(f"slurm script saved into file: {scanning_slurm_script_file}")
+            print(f"Scanning slurm script saved into file: {scanning_slurm_script_file}")
             with open(scanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash")
                 for _fov, _log_savefile in fov_2_log_savefile.items():
@@ -150,7 +151,7 @@ if __name__ == "__main__":
         # archiving
         archiving_bash_script_file = os.path.join(final_target_folder, 'fov_archiving.bash')
         if not os.path.exists(archiving_bash_script_file) or overwrite:
-            print(f"bash script saved into file: {archiving_bash_script_file}")
+            print(f"Archiving bash script saved into file: {archiving_bash_script_file}")
             with open(archiving_bash_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash")
                 for _fov in fov_2_archive_savefile:
@@ -162,7 +163,7 @@ if __name__ == "__main__":
         # scanning archives
         scanning_bash_script_file = os.path.join(final_target_folder, 'fov_scanning.bash')
         if not os.path.exists(scanning_bash_script_file) or overwrite:
-            print(f"bash script saved into file: {scanning_bash_script_file}")
+            print(f"Scanning bash script saved into file: {scanning_bash_script_file}")
             with open(scanning_bash_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash")
 

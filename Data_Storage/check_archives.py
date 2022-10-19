@@ -15,6 +15,7 @@ def parse_arguments(argv):
         if opt == '-h':
             print("Usage: check_archives.py -o <target_folder> [-w]")
             print(" -w: overwrite existing files")
+            exit()
         elif opt in ['-o']:
             target_folder = arg
         elif opt in ['-w']:
