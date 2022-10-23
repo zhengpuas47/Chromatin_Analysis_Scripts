@@ -115,6 +115,8 @@ if __name__ == "__main__":
             print(f"Archiving slurm script saved into file: {archiving_slurm_script_file}")
             with open(archiving_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash\n")
+                _sf.write(r"#SBATCH -e ./Logs/slurm-%j.err\n")
+                _sf.write(r"#SBATCH -o ./Logs/slurm-%j.out\n")
                 for _fov in fov_2_archive_savefile:
                     _filelist_savefile = fov_2_filelist_savefile[_fov]
                     _archive_savefile = fov_2_archive_savefile[_fov]
@@ -128,6 +130,8 @@ if __name__ == "__main__":
             print(f"Scanning slurm script saved into file: {scanning_slurm_script_file}")
             with open(scanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash\n")
+                _sf.write(r"#SBATCH -e ./Logs/slurm-%j.err\n")
+                _sf.write(r"#SBATCH -o ./Logs/slurm-%j.out\n")
                 for _fov, _log_savefile in fov_2_log_savefile.items():
                     _archive_savefile = _log_savefile.replace('.log', '.tar.zst')
                     _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program=unzstd -tf {_archive_savefile} > {_log_savefile}"\n')
@@ -142,7 +146,7 @@ if __name__ == "__main__":
         print(f"2. scanning data archives:")
         print(f'sbatch {scanning_slurm_script_file}')
         print(f"3. scanning data archives:")
-        print(f'sbatch --wrap="python check_archives.py -o {final_target_folder} -w"')
+        print(f'sbatch --wrap="python check_archives.py -o {final_target_folder} -w" -o {os.path.basename(source_folder)}_archive_summary.txt')
         print(f"3.1 in the interactive job, run the following instead:")
         print(f"python check_archives.py -o {final_target_folder} -w")
         print(f"-- check the final output! ")
