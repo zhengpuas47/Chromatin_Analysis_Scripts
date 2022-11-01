@@ -75,6 +75,8 @@ if __name__ == "__main__":
                     fov_2_files[ _match_result.groupdict()['fov'] ].append(_rel_file)
             else:
                 fov_2_files['others'].append(_rel_file)
+    if len(fov_2_files['others']) == 0:
+        del fov_2_files['others']
     # save these temp list
     fov_2_filelist_savefile = {}
     fov_2_archive_savefile = {}
@@ -107,6 +109,7 @@ if __name__ == "__main__":
         else:
             print("log exists", end=';')
         print("")
+    print(f"{len(fov_2_files)} field of views detected. ")
     # print commands
     if generate_slurm:
         # archiving
@@ -137,6 +140,22 @@ if __name__ == "__main__":
                     _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program=unzstd -tf {_archive_savefile} > {_log_savefile}" -o ./Logs/Scanning_logs/{os.path.basename(source_folder)}_scan_fov_{_fov}.log\n')
                     _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based scanning jobs.\n")
+        # clean up file-lists and logs
+        cleanning_slurm_script_file = os.path.join(final_target_folder, 'fov_cleaning.slurm')
+        if not os.path.exists(cleanning_slurm_script_file) or overwrite:
+            print(f"Cleaning up slurm script saved into file: {cleanning_slurm_script_file}")
+            with open(scanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
+                _sf.write("#!/bin/bash\n")
+                _sf.write(r"#SBATCH -e ./Logs/slurm-%j.err"+'\n')
+                _sf.write(r"#SBATCH -o ./Logs/slurm-%j.out"+'\n')
+                # archiving filelists
+                _sf.write(f"tar -cvf {os.path.join(final_target_folder, r'filelists.tar')} {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
+                # archiving logs
+                _sf.write(f"tar -cvf {os.path.join(final_target_folder, r'logs.tar')} {os.path.join(final_target_folder, r'Fov_*.log')}\n")
+                # clean up
+                _sf.write(f"rm {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
+                _sf.write(f"rm {os.path.join(final_target_folder, r'Fov_*.log')}\n")
+
         # checking results
         # please run the next python script
         # print instructions:
@@ -147,7 +166,7 @@ if __name__ == "__main__":
         print(f'sbatch {scanning_slurm_script_file}')
         print(f"3. scanning data archives:")
         print(f'sbatch --wrap="python check_archives.py -o {final_target_folder} -w" -o {os.path.basename(source_folder)}_archive_summary.txt')
-        print(f"3.1 in the interactive job, run the following instead:")
+        print(f"4. archive filelists and logs")
         print(f"python check_archives.py -o {final_target_folder} -w")
         print(f"-- check the final output! ")
 
