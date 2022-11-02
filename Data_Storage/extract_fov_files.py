@@ -81,7 +81,7 @@ if __name__ == "__main__":
     fov_2_filelist_savefile = {}
     fov_2_archive_savefile = {}
     fov_2_log_savefile = {} 
-    for _fov, _files in fov_2_files.items():
+    for _fov, _files in sorted(fov_2_files.items()):
         print(f"FOV: {_fov}, {len(_files)} files", end=',')
         _fov_filelist_savefile = os.path.join(final_target_folder, f"filelist_{_fov}.txt")
         _fov_archive_savefile = os.path.join(final_target_folder, f"Fov_{_fov}.tar.zst")
