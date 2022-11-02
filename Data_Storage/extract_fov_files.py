@@ -144,7 +144,7 @@ if __name__ == "__main__":
         cleanning_slurm_script_file = os.path.join(final_target_folder, 'fov_cleaning.slurm')
         if not os.path.exists(cleanning_slurm_script_file) or overwrite:
             print(f"Cleaning up slurm script saved into file: {cleanning_slurm_script_file}")
-            with open(scanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
+            with open(cleanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash\n")
                 _sf.write(r"#SBATCH -e ./Logs/slurm-%j.err"+'\n')
                 _sf.write(r"#SBATCH -o ./Logs/slurm-%j.out"+'\n')
