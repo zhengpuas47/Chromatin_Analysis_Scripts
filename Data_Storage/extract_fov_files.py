@@ -124,7 +124,7 @@ if __name__ == "__main__":
                     _filelist_savefile = fov_2_filelist_savefile[_fov]
                     _archive_savefile = fov_2_archive_savefile[_fov]
                     # write line
-                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program zstd -C {source_folder} -T {_filelist_savefile} -cvf {_archive_savefile}" -o ./Logs/Archiving_logs/{os.path.basename(source_folder)}_archive_fov_{_fov}.log\n')
+                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 4000 -t 0-6:00 --wrap="time tar --use-compress-program zstd -C {source_folder} -T {_filelist_savefile} -cvf {_archive_savefile}" -o ./Logs/Archiving_logs/{os.path.basename(source_folder)}_archive_fov_{_fov}.log\n')
                     _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based archiving jobs.\n")
         # scanning archives
@@ -137,7 +137,7 @@ if __name__ == "__main__":
                 _sf.write(r"#SBATCH -o ./Logs/slurm-%j.out"+'\n')
                 for _fov, _log_savefile in fov_2_log_savefile.items():
                     _archive_savefile = _log_savefile.replace('.log', '.tar.zst')
-                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program=unzstd -tf {_archive_savefile} > {_log_savefile}" -o ./Logs/Scanning_logs/{os.path.basename(source_folder)}_scan_fov_{_fov}.log\n')
+                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 4000 -t 0-6:00 --wrap="time tar --use-compress-program=unzstd -tf {_archive_savefile} > {_log_savefile}" -o ./Logs/Scanning_logs/{os.path.basename(source_folder)}_scan_fov_{_fov}.log\n')
                     _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based scanning jobs.\n")
         # clean up file-lists and logs
