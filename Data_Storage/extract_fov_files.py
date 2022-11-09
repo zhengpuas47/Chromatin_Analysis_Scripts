@@ -193,11 +193,24 @@ if __name__ == "__main__":
             print(f"Scanning bash script saved into file: {scanning_bash_script_file}")
             with open(scanning_bash_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash\n")
-
+                # loop through fovs
                 for _fov, _log_savefile in fov_2_log_savefile.items():
                     _archive_savefile = _log_savefile.replace('.log', '.tar.zst')
                     _sf.write(f"echo scanning archive: {_archive_savefile}\n")
                     _sf.write(f"time tar --use-compress-program=unzstd -tf {_archive_savefile} > {_log_savefile}\n")
+        # clean up file-lists and logs
+        cleanning_bash_script_file = os.path.join(final_target_folder, 'fov_cleaning.bash')
+        if not os.path.exists(cleanning_bash_script_file) or overwrite:
+            print(f"Cleaning up bash script saved into file: {cleanning_bash_script_file}")
+            with open(cleanning_bash_script_file, 'w', encoding='utf-8') as _sf:
+                _sf.write("#!/bin/bash\n")
+                # archiving filelists
+                _sf.write(f"tar -cvf {os.path.join(final_target_folder, r'filelists.tar')} {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
+                # archiving logs
+                _sf.write(f"tar -cvf {os.path.join(final_target_folder, r'logs.tar')} {os.path.join(final_target_folder, r'Fov_*.log')}\n")
+                # clean up
+                _sf.write(f"rm {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
+                _sf.write(f"rm {os.path.join(final_target_folder, r'Fov_*.log')}\n")
 
         # checking results
         # please run the next python script
@@ -209,4 +222,6 @@ if __name__ == "__main__":
         print(f'bash {scanning_bash_script_file}')
         print(f"3. scanning data archives:")
         print(f"python check_archives.py -o {final_target_folder} -w")
+        print(f"4. archive filelists and logs")
+        print(f"sbatch {cleanning_bash_script_file} -p zhuang")
         print(f"-- check the final output! ")
