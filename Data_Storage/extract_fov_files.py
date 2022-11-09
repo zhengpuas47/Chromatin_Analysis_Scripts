@@ -50,10 +50,14 @@ if __name__ == "__main__":
         target_folder = target_folder[:-1]
     # create final target folder
     final_target_folder = os.path.join(target_folder, os.path.basename(source_folder))
+    log_folder = os.path.join(final_target_folder, 'Logs')
     if not os.path.exists(final_target_folder):
         print(f'creating final target folder: {final_target_folder}')
         try:
-            os.makedirs(final_target_folder,)
+            os.makedirs(final_target_folder)
+            # if log_folder not exist, create
+            if not os.path.exists(log_folder):
+                os.makedirs(log_folder)
         except:
             # these are only required when having permission error
             old_umask = os.umask(000) 
@@ -118,13 +122,13 @@ if __name__ == "__main__":
             print(f"Archiving slurm script saved into file: {archiving_slurm_script_file}")
             with open(archiving_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash\n")
-                _sf.write(r"#SBATCH -e ./Logs/slurm-%j.err"+'\n')
-                _sf.write(r"#SBATCH -o ./Logs/slurm-%j.out"+'\n')
+                _sf.write(r"#SBATCH -e "+ log_folder + r"/slurm-%j.err"+'\n')
+                _sf.write(r"#SBATCH -o "+ log_folder + r"/slurm-%j.out"+'\n')
                 for _fov in fov_2_archive_savefile:
                     _filelist_savefile = fov_2_filelist_savefile[_fov]
                     _archive_savefile = fov_2_archive_savefile[_fov]
                     # write line
-                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 4000 -t 0-6:00 --wrap="time tar --use-compress-program zstd -C {source_folder} -T {_filelist_savefile} -cvf {_archive_savefile}" -o ./Logs/Archiving_logs/{os.path.basename(source_folder)}_archive_fov_{_fov}.log\n')
+                    _sf.write(f'sbatch -p zhuang -c 1 --mem 4000 -t 0-6:00 --wrap="time tar --use-compress-program zstd -C {source_folder} -T {_filelist_savefile} -cvf {_archive_savefile}" -o {(log_folder)}/archiving_fov_{_fov}.log\n')
                     _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based archiving jobs.\n")
         # scanning archives
@@ -133,11 +137,11 @@ if __name__ == "__main__":
             print(f"Scanning slurm script saved into file: {scanning_slurm_script_file}")
             with open(scanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash\n")
-                _sf.write(r"#SBATCH -e ./Logs/slurm-%j.err"+'\n')
-                _sf.write(r"#SBATCH -o ./Logs/slurm-%j.out"+'\n')
+                _sf.write(r"#SBATCH -e "+ log_folder + r"/slurm-%j.err"+'\n')
+                _sf.write(r"#SBATCH -o "+ log_folder + r"/slurm-%j.out"+'\n')
                 for _fov, _log_savefile in fov_2_log_savefile.items():
                     _archive_savefile = _log_savefile.replace('.log', '.tar.zst')
-                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 4000 -t 0-6:00 --wrap="time tar --use-compress-program=unzstd -tf {_archive_savefile} > {_log_savefile}" -o ./Logs/Scanning_logs/{os.path.basename(source_folder)}_scan_fov_{_fov}.log\n')
+                    _sf.write(f'sbatch -p zhuang -c 1 --mem 4000 -t 0-6:00 --wrap="time tar --use-compress-program=unzstd -tf {_archive_savefile} > {_log_savefile}" -o {(log_folder)}/scanning_fov_{_fov}.log\n')
                     _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based scanning jobs.\n")
         # clean up file-lists and logs
@@ -146,8 +150,8 @@ if __name__ == "__main__":
             print(f"Cleaning up slurm script saved into file: {cleanning_slurm_script_file}")
             with open(cleanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash\n")
-                _sf.write(r"#SBATCH -e ./Logs/slurm-%j.err"+'\n')
-                _sf.write(r"#SBATCH -o ./Logs/slurm-%j.out"+'\n')
+                _sf.write(r"#SBATCH -e "+ log_folder + r"/slurm-%j.err"+'\n')
+                _sf.write(r"#SBATCH -o "+ log_folder + r"/slurm-%j.out"+'\n')
                 # archiving filelists
                 _sf.write(f"tar -cvf {os.path.join(final_target_folder, r'filelists.tar')} {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
                 # archiving logs
