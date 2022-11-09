@@ -165,13 +165,13 @@ if __name__ == "__main__":
         # print instructions:
         print(f'Please run the following code:')
         print(f"1. archving data:")
-        print(f'sbatch {archiving_slurm_script_file}')
+        print(f'sbatch {archiving_slurm_script_file} -p zhuang')
         print(f"2. scanning data archives:")
-        print(f'sbatch {scanning_slurm_script_file}')
+        print(f'sbatch {scanning_slurm_script_file} -p zhuang')
         print(f"3. scanning data archives:")
-        print(f'sbatch --wrap="python check_archives.py -o {final_target_folder} -w" -o {os.path.basename(source_folder)}_archive_summary.txt')
+        print(f'sbatch --wrap="python check_archives.py -o {final_target_folder} -w" -p zhuang -o {os.path.basename(source_folder)}_archive_summary.txt')
         print(f"4. archive filelists and logs")
-        print(f"python check_archives.py -o {final_target_folder} -w")
+        print(f"sbatch {cleanning_slurm_script_file} -p zhuang")
         print(f"-- check the final output! ")
 
     else:
