@@ -162,9 +162,13 @@ if __name__ == "__main__":
                 _sf.write(f"tar -cvf {os.path.join(final_target_folder, r'filelists.tar')} {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
                 # archiving logs
                 _sf.write(f"tar -cvf {os.path.join(final_target_folder, r'logs.tar')} {os.path.join(final_target_folder, r'Fov_*.log')}\n")
+                # archiving log folder
+                _sf.write(f"tar -cvf {os.path.join(final_target_folder, r'slurm_logs.tar')} {log_folder}\n")
                 # clean up
                 _sf.write(f"rm {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
                 _sf.write(f"rm {os.path.join(final_target_folder, r'Fov_*.log')}\n")
+                # clean up log folder
+                _sf.write(f"rm -r {log_folder}\n")
 
         # checking results
         # please run the next python script
