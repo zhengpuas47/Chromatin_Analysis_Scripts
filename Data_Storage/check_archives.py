@@ -55,6 +55,7 @@ if __name__ == "__main__":
     print("")
     # running checks
     _fov_checks = {}
+    total_checked_files = 0
     for _fov, _filelist_file, _log_file in zip(_fovs, _filelist_files, _scanning_log_files):
         # filelist
         _filelist = open(_filelist_file, 'r').readlines()
@@ -70,6 +71,15 @@ if __name__ == "__main__":
                 break
         # append
         _fov_checks[_fov] = _good_archive
+        # add number of files
+        total_checked_files += len(_archived_filelist)
+    # compare total_number of files
+    total_num_filename = os.path.join(target_folder, 'num_files.pkl')
+    if not os.path.exists(total_num_filename) or overwrite:
+        import pickle
+        total_num_files = pickle.load(open(total_num_filename, 'rb'))
+    print(f"{total_checked_files}/{total_num_files} files being archived.")
+
     # save results:
     checking_result_file = os.path.join(target_folder, 'checking_archive_result.csv')
     if not os.path.exists(checking_result_file) or overwrite:

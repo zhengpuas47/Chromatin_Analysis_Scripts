@@ -1,6 +1,6 @@
 #!~/anaconda3/bin/python
 
-import os, sys, getopt, re
+import os, sys, getopt, re, pickle
 
 def parse_arguments(argv):
     # defaults
@@ -82,6 +82,7 @@ if __name__ == "__main__":
     if len(fov_2_files['others']) == 0:
         del fov_2_files['others']
     # save these temp list
+    total_num_files = 0
     fov_2_filelist_savefile = {}
     fov_2_archive_savefile = {}
     fov_2_log_savefile = {} 
@@ -113,7 +114,15 @@ if __name__ == "__main__":
         else:
             print("log exists", end=';')
         print("")
-    print(f"{len(fov_2_files)} field of views detected. ")
+        # append number of files
+        total_num_files += len(_files)
+    print(f"* {len(fov_2_files)} field of views detected. ")
+    print(f"* {total_num_files} files detected. ")
+    # save number of files
+    total_num_filename = os.path.join(final_target_folder, 'num_files.pkl')
+    if not os.path.exists(total_num_filename) or overwrite:
+        print(f"Total number saved into file: {total_num_filename}")
+        pickle.dump(total_num_files, open(total_num_filename, 'wb'))
     # print commands
     if generate_slurm:
         # archiving
