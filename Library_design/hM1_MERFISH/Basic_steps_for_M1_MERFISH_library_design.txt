@@ -1,0 +1,6 @@
+1. Select candidate DE genes for clustering (with keeping a subset of MTG-250-genes but remove highly expressed genes);
+2. Construct human gene level transcriptome dataframe;
+3. Generate a 22-bit HM code list;
+4. Use selected DE genes and hM1_10x_data to get cluster size and cluster gene expression;
+5. Use cluster gene expression info to distribute HM code to DE genes;
+6. Probe design for selected DE genes.
