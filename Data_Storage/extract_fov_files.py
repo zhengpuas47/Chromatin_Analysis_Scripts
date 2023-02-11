@@ -1,6 +1,6 @@
 #!~/anaconda3/bin/python
 
-import os, sys, getopt, re
+import os, sys, getopt, re, pickle
 
 def parse_arguments(argv):
     # defaults
@@ -50,10 +50,14 @@ if __name__ == "__main__":
         target_folder = target_folder[:-1]
     # create final target folder
     final_target_folder = os.path.join(target_folder, os.path.basename(source_folder))
+    log_folder = os.path.join(final_target_folder, 'Logs')
     if not os.path.exists(final_target_folder):
         print(f'creating final target folder: {final_target_folder}')
         try:
-            os.makedirs(final_target_folder,)
+            os.makedirs(final_target_folder)
+            # if log_folder not exist, create
+            if not os.path.exists(log_folder):
+                os.makedirs(log_folder)
         except:
             # these are only required when having permission error
             old_umask = os.umask(000) 
@@ -75,11 +79,14 @@ if __name__ == "__main__":
                     fov_2_files[ _match_result.groupdict()['fov'] ].append(_rel_file)
             else:
                 fov_2_files['others'].append(_rel_file)
+    if len(fov_2_files['others']) == 0:
+        del fov_2_files['others']
     # save these temp list
+    total_num_files = 0
     fov_2_filelist_savefile = {}
     fov_2_archive_savefile = {}
     fov_2_log_savefile = {} 
-    for _fov, _files in fov_2_files.items():
+    for _fov, _files in sorted(fov_2_files.items()):
         print(f"FOV: {_fov}, {len(_files)} files", end=',')
         _fov_filelist_savefile = os.path.join(final_target_folder, f"filelist_{_fov}.txt")
         _fov_archive_savefile = os.path.join(final_target_folder, f"Fov_{_fov}.tar.zst")
@@ -107,6 +114,15 @@ if __name__ == "__main__":
         else:
             print("log exists", end=';')
         print("")
+        # append number of files
+        total_num_files += len(_files)
+    print(f"* {len(fov_2_files)} field of views detected. ")
+    print(f"* {total_num_files} files detected. ")
+    # save number of files
+    total_num_filename = os.path.join(final_target_folder, 'num_files.pkl')
+    if not os.path.exists(total_num_filename) or overwrite:
+        print(f"Total number saved into file: {total_num_filename}")
+        pickle.dump(total_num_files, open(total_num_filename, 'wb'))
     # print commands
     if generate_slurm:
         # archiving
@@ -115,13 +131,15 @@ if __name__ == "__main__":
             print(f"Archiving slurm script saved into file: {archiving_slurm_script_file}")
             with open(archiving_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash\n")
-                _sf.write(r"#SBATCH -e ./Logs/slurm-%j.err"+'\n')
-                _sf.write(r"#SBATCH -o ./Logs/slurm-%j.out"+'\n')
+                _sf.write(r"#SBATCH -e "+ log_folder + r"/slurm-%j.err"+'\n')
+                _sf.write(r"#SBATCH -o "+ log_folder + r"/slurm-%j.out"+'\n')
+                _sf.write(r"#SBATCH -p zhuang"+'\n')
+                _sf.write(r"#SBATCH -t 0-12:00:00"+'\n')                
                 for _fov in fov_2_archive_savefile:
                     _filelist_savefile = fov_2_filelist_savefile[_fov]
                     _archive_savefile = fov_2_archive_savefile[_fov]
                     # write line
-                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program zstd -C {source_folder} -T {_filelist_savefile} -cvf {_archive_savefile}" -o ./Logs/Archiving_logs/{os.path.basename(source_folder)}_archive_fov_{_fov}.log\n')
+                    _sf.write(f'sbatch -p zhuang -c 1 --mem 4000 -t 0-6:00 --wrap="time tar --use-compress-program zstd -C {source_folder} -T {_filelist_savefile} -cvf {_archive_savefile}" -o {(log_folder)}/archiving_fov_{_fov}.log\n')
                     _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based archiving jobs.\n")
         # scanning archives
@@ -130,25 +148,49 @@ if __name__ == "__main__":
             print(f"Scanning slurm script saved into file: {scanning_slurm_script_file}")
             with open(scanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash\n")
-                _sf.write(r"#SBATCH -e ./Logs/slurm-%j.err"+'\n')
-                _sf.write(r"#SBATCH -o ./Logs/slurm-%j.out"+'\n')
+                _sf.write(r"#SBATCH -e "+ log_folder + r"/slurm-%j.err"+'\n')
+                _sf.write(r"#SBATCH -o "+ log_folder + r"/slurm-%j.out"+'\n')
+                _sf.write(r"#SBATCH -p zhuang"+'\n')
+                _sf.write(r"#SBATCH -t 0-12:00:00"+'\n')
                 for _fov, _log_savefile in fov_2_log_savefile.items():
                     _archive_savefile = _log_savefile.replace('.log', '.tar.zst')
-                    _sf.write(f'sbatch -p zhuang,shared -c 1 --mem 8000 -t 0-24:00 --wrap="time tar --use-compress-program=unzstd -tf {_archive_savefile} > {_log_savefile}" -o ./Logs/Scanning_logs/{os.path.basename(source_folder)}_scan_fov_{_fov}.log\n')
+                    _sf.write(f'sbatch -p zhuang -c 1 --mem 4000 -t 0-6:00 --wrap="time tar --use-compress-program=unzstd -tf {_archive_savefile} > {_log_savefile}" -o {(log_folder)}/scanning_fov_{_fov}.log\n')
                     _sf.write('sleep 1\n')
                 _sf.write("echo Finish submitting fov based scanning jobs.\n")
+        # clean up file-lists and logs
+        cleanning_slurm_script_file = os.path.join(final_target_folder, 'fov_cleaning.slurm')
+        if not os.path.exists(cleanning_slurm_script_file) or overwrite:
+            print(f"Cleaning up slurm script saved into file: {cleanning_slurm_script_file}")
+            with open(cleanning_slurm_script_file, 'w', encoding='utf-8') as _sf:
+                _sf.write("#!/bin/bash\n")
+                _sf.write(r"#SBATCH -e "+ log_folder + r"/slurm-%j.err"+'\n')
+                _sf.write(r"#SBATCH -o "+ log_folder + r"/slurm-%j.out"+'\n')
+                _sf.write(r"#SBATCH -p zhuang"+'\n')
+                _sf.write(r"#SBATCH -t 0-12:00:00"+'\n')
+                # archiving filelists
+                _sf.write(f"tar -C {final_target_folder} -cvf {os.path.join(final_target_folder, r'filelists.tar')} {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
+                # archiving logs
+                _sf.write(f"tar -C {final_target_folder} -cvf {os.path.join(final_target_folder, r'logs.tar')} {os.path.join(final_target_folder, r'Fov_*.log')}\n")
+                # archiving log folder
+                _sf.write(f"tar -C {final_target_folder} -cvf {os.path.join(final_target_folder, r'slurm_logs.tar')} {log_folder}\n")
+                # clean up
+                _sf.write(f"rm {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
+                _sf.write(f"rm {os.path.join(final_target_folder, r'Fov_*.log')}\n")
+                # clean up log folder
+                _sf.write(f"rm -r {log_folder}\n")
+
         # checking results
         # please run the next python script
         # print instructions:
         print(f'Please run the following code:')
         print(f"1. archving data:")
-        print(f'sbatch {archiving_slurm_script_file}')
+        print(f'sbatch {archiving_slurm_script_file} -p zhuang -t 0-12:00')
         print(f"2. scanning data archives:")
-        print(f'sbatch {scanning_slurm_script_file}')
+        print(f'sbatch {scanning_slurm_script_file} -p zhuang -t 0-12:00')
         print(f"3. scanning data archives:")
-        print(f'sbatch --wrap="python check_archives.py -o {final_target_folder} -w" -o {os.path.basename(source_folder)}_archive_summary.txt')
-        print(f"3.1 in the interactive job, run the following instead:")
-        print(f"python check_archives.py -o {final_target_folder} -w")
+        print(f'sbatch --wrap="python check_archives.py -o {final_target_folder} -w" -p zhuang -o {os.path.basename(source_folder)}_archive_summary.txt  -t 0-4:00')
+        print(f"4. archive filelists and logs")
+        print(f"sbatch {cleanning_slurm_script_file} -p zhuang -t 0-1:00")
         print(f"-- check the final output! ")
 
     else:
@@ -170,11 +212,28 @@ if __name__ == "__main__":
             print(f"Scanning bash script saved into file: {scanning_bash_script_file}")
             with open(scanning_bash_script_file, 'w', encoding='utf-8') as _sf:
                 _sf.write("#!/bin/bash\n")
-
+                # loop through fovs
                 for _fov, _log_savefile in fov_2_log_savefile.items():
                     _archive_savefile = _log_savefile.replace('.log', '.tar.zst')
                     _sf.write(f"echo scanning archive: {_archive_savefile}\n")
                     _sf.write(f"time tar --use-compress-program=unzstd -tf {_archive_savefile} > {_log_savefile}\n")
+        # clean up file-lists and logs
+        cleanning_bash_script_file = os.path.join(final_target_folder, 'fov_cleaning.bash')
+        if not os.path.exists(cleanning_bash_script_file) or overwrite:
+            print(f"Cleaning up bash script saved into file: {cleanning_bash_script_file}")
+            with open(cleanning_bash_script_file, 'w', encoding='utf-8') as _sf:
+                _sf.write("#!/bin/bash\n")
+                # archiving filelists
+                _sf.write(f"tar -C {final_target_folder} -cvf {os.path.join(final_target_folder, r'filelists.tar')} {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
+                # archiving logs
+                _sf.write(f"tar -C {final_target_folder} -cvf {os.path.join(final_target_folder, r'logs.tar')} {os.path.join(final_target_folder, r'Fov_*.log')}\n")
+                # archiving log folder
+                _sf.write(f"tar -C {final_target_folder} -cvf {os.path.join(final_target_folder, r'slurm_logs.tar')} {log_folder}\n")
+                # clean up
+                _sf.write(f"rm {os.path.join(final_target_folder, r'filelist_*.txt')}\n")
+                _sf.write(f"rm {os.path.join(final_target_folder, r'Fov_*.log')}\n")
+                # clean up log folder
+                _sf.write(f"rm -r {log_folder}\n")
 
         # checking results
         # please run the next python script
@@ -186,4 +245,6 @@ if __name__ == "__main__":
         print(f'bash {scanning_bash_script_file}')
         print(f"3. scanning data archives:")
         print(f"python check_archives.py -o {final_target_folder} -w")
+        print(f"4. archive filelists and logs")
+        print(f"sbatch {cleanning_bash_script_file} -p zhuang")
         print(f"-- check the final output! ")
